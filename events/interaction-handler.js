@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const handleButton = require('../events/button-handler');
+const handleButton = require('../events/rsvp').handleRSVPButton;
 const { handleModal } = require('../events/rsvp');
 require('dotenv').config();
 
@@ -19,35 +19,35 @@ if (fs.existsSync(PERMS_FILE)) {
   }
 }
 
-// ✅ Safe reply helper with error code awareness
-async function safeReply(interaction, replyData) {
-  if (interaction.replied || interaction.deferred) {
-    console.warn(`[SAFE_REPLY] Already acknowledged for ${interaction.user.tag}`);
-    return;
-  }
+// ✅ Unified Safe Reply
+async function safeReply(interaction, data) {
+  const tag = interaction.user?.tag || 'unknown user';
   try {
-    await interaction.reply(replyData);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply(data);
+    } else {
+      await interaction.followUp({ ...data, ephemeral: true });
+    }
   } catch (err) {
     const code = err?.rawError?.code || err.code;
     if (code === 10062) {
-      console.warn(`[SAFE_REPLY_ERROR] Interaction expired (10062) for ${interaction.user.tag}`);
+      console.warn(`[SAFE_REPLY] Interaction expired (10062) for ${tag}`);
     } else if (code === 40060) {
-      console.warn(`[SAFE_REPLY_ERROR] Already acknowledged (40060) for ${interaction.user.tag}`);
+      console.warn(`[SAFE_REPLY] Already acknowledged (40060) for ${tag}`);
     } else {
-      console.error(`[SAFE_REPLY_ERROR] Failed to reply to ${interaction.user.tag}:`, err?.rawError || err);
+      console.error(`[SAFE_REPLY] Unexpected error for ${tag}:`, err);
     }
   }
 }
 
 module.exports = async function interactionHandler(interaction) {
   // === Slash Commands ===
-  if (interaction.isCommand()) {
+  if (interaction.isChatInputCommand()) {
     const command = interaction.client.commands.get(interaction.commandName);
     if (!command) return;
 
     const requiredRoles = rolePermissions[interaction.commandName] || [];
-    const memberRoles = interaction.member.roles.cache.map(role => role.id);
-
+    const memberRoles = interaction.member?.roles?.cache.map(role => role.id) || [];
     const hasPermission =
       interaction.user.id === OWNER_ID ||
       memberRoles.includes(MANAGER_ROLE_ID) ||
@@ -74,72 +74,7 @@ module.exports = async function interactionHandler(interaction) {
 
   // === Buttons ===
   if (interaction.isButton()) {
-    const id = interaction.customId;
     try {
-      // Modal chain buttons
-      if (id === 'event_step2' || id === 'event_step3') {
-        const modalId = id === 'event_step2' ? 'event_modal_step2' : 'event_modal_step3';
-        const modalTitle = id === 'event_step2' ? '📋 Create New Event — Step 2' : '📋 Create New Event — Step 3';
-
-        const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-        const modal = new ModalBuilder()
-          .setCustomId(modalId)
-          .setTitle(modalTitle);
-
-        if (id === 'event_step2') {
-          modal.addComponents(
-            new ActionRowBuilder().addComponents(new TextInputBuilder()
-              .setCustomId('event_rules')
-              .setLabel('Rules Link')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false)),
-            new ActionRowBuilder().addComponents(new TextInputBuilder()
-              .setCustomId('event_mods')
-              .setLabel('Mod Collection Link')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false)),
-            new ActionRowBuilder().addComponents(new TextInputBuilder()
-              .setCustomId('event_specials')
-              .setLabel('Specials (Emoji Names)')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false)),
-            new ActionRowBuilder().addComponents(new TextInputBuilder()
-              .setCustomId('event_recurring')
-              .setLabel('Recurring (weekly, monthly, none)')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false))
-          );
-        } else {
-          modal.addComponents(
-            new ActionRowBuilder().addComponents(new TextInputBuilder()
-              .setCustomId('event_ping')
-              .setLabel('Ping Role ID')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(true))
-          );
-        }
-
-        try {
-          if (interaction.replied || interaction.deferred) {
-            console.warn(`[MODAL_FAIL] Interaction already replied: ${id}`);
-            return;
-          }
-          await interaction.showModal(modal);
-        } catch (err) {
-          const code = err?.rawError?.code || err.code;
-          if (code === 10062) {
-            console.warn(`[MODAL_FAIL] Interaction expired (10062): ${id}`);
-          } else if (code === 40060) {
-            console.warn(`[MODAL_FAIL] Already acknowledged (40060): ${id}`);
-          } else {
-            console.error(`[MODAL_FAIL] Unexpected error for ${id}:`, err);
-          }
-        }
-
-        return;
-      }
-
-      // All other button actions
       await handleButton(interaction);
     } catch (err) {
       console.error(`[ERROR] Button interaction failed:`, err);

@@ -1,208 +1,105 @@
-const {
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder
-} = require('discord.js');
-const { postEvent } = require('./post-event');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const { DateTime } = require('luxon');
+const { safeReply } = require('../utils/safe-reply.js'); // Ensure this path is correct
 
-if (!global.eventStepStore) global.eventStepStore = new Map();
-if (!global.rsvpStore) global.rsvpStore = {};
+const dataFile = path.join(__dirname, '../events/events.json');
 
-// ✅ Safe reply helper
-async function safeReply(interaction, replyData) {
-  console.log(`[SAFE_REPLY] Attempting reply to ${interaction.user.tag} for ${interaction.customId || 'rsvp interaction'}`);
-
-  if (interaction.replied || interaction.deferred) {
-    console.warn(`[SAFE_REPLY] Already acknowledged for ${interaction.user.tag}`);
-    return;
-  }
-
-  try {
-    await interaction.reply(replyData);
-  } catch (err) {
-    const code = err?.rawError?.code || err.code;
-    if (code === 10062) {
-      console.warn(`[SAFE_REPLY_ERROR] Interaction expired for ${interaction.user.tag} (10062 Unknown Interaction)`);
-    } else if (code === 40060) {
-      console.warn(`[SAFE_REPLY_ERROR] Already acknowledged (40060) for ${interaction.user.tag}`);
-    } else {
-      console.error(`[SAFE_REPLY_ERROR] Failed to reply to ${interaction.user.tag}:`, err?.rawError || err);
-    }
-  }
-}
-
-async function handleModal(interaction) {
-  const id = interaction.customId;
-  console.log(`[MODAL] Received ${id} from ${interaction.user.tag}`);
-
-  try {
-    switch (id) {
-      case 'event_modal_step1': {
-        const title = interaction.fields.getTextInputValue('event_title');
-        const date = interaction.fields.getTextInputValue('event_date');
-        const time = interaction.fields.getTextInputValue('event_time');
-        const timezone = interaction.fields.getTextInputValue('event_timezone');
-        const region = interaction.fields.getTextInputValue('event_region').toUpperCase();
-
-        global.eventStepStore.set(interaction.user.id, {
-          title, date, time, timezone, region
-        });
-
-        return safeReply(interaction, {
-          content: '✅ Step 1 complete. Click below to continue.',
-          components: [
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId('event_step2')
-                .setLabel('Continue to Step 2')
-                .setStyle(ButtonStyle.Primary)
-            )
-          ],
-          ephemeral: true
-        });
-      }
-
-      case 'event_modal_step2': {
-        const rules = interaction.fields.getTextInputValue('event_rules');
-        const mods = interaction.fields.getTextInputValue('event_mods');
-        const specials = interaction.fields.getTextInputValue('event_specials');
-        let recurring = interaction.fields.getTextInputValue('event_recurring');
-
-        recurring = recurring?.toLowerCase().trim();
-        if (recurring && !['weekly', 'monthly', 'none'].includes(recurring)) {
-          return safeReply(interaction, {
-            content: '❌ Invalid recurring value. Use: weekly, monthly, or none.',
-            ephemeral: true
-          });
-        }
-
-        if (recurring === 'none') recurring = null;
-
-        const previous = global.eventStepStore.get(interaction.user.id);
-        if (!previous) {
-          return safeReply(interaction, {
-            content: '❌ Missing Step 1 data.',
-            ephemeral: true
-          });
-        }
-
-        global.eventStepStore.set(interaction.user.id, {
-          ...previous,
-          rules,
-          mods,
-          specials,
-          recurring
-        });
-
-        return safeReply(interaction, {
-          content: '✅ Step 2 complete. Click below to finish.',
-          components: [
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId('event_step3')
-                .setLabel('Continue to Step 3')
-                .setStyle(ButtonStyle.Success)
-            )
-          ],
-          ephemeral: true
-        });
-      }
-
-      case 'event_modal_step3': {
-        const pingRoleId = interaction.fields.getTextInputValue('event_ping');
-        const finalData = global.eventStepStore.get(interaction.user.id);
-
-        if (!finalData) {
-          return safeReply(interaction, {
-            content: '❌ Missing previous steps.',
-            ephemeral: true
-          });
-        }
-
-        await postEvent({ ...finalData, pingRoleId }, interaction);
-        global.eventStepStore.delete(interaction.user.id);
-        return;
-      }
-
-      default:
-        return safeReply(interaction, {
-          content: '❌ Unknown modal interaction.',
-          ephemeral: true
-        });
-    }
-
-  } catch (err) {
-    console.error(`[MODAL ERROR] Error handling modal '${id}' from ${interaction.user.tag}:`, err);
-    await safeReply(interaction, {
-      content: '❌ Something went wrong processing your submission.',
-      ephemeral: true
-    });
-  }
+function buildRSVPButtons(eventId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`rsvp_yes_${eventId}`)
+      .setLabel('✅ Going')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`rsvp_no_${eventId}`)
+      .setLabel('❌ Absent')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`rsvp_maybe_${eventId}`)
+      .setLabel('❔ Tentative')
+      .setStyle(ButtonStyle.Primary)
+  );
 }
 
 async function handleRSVPButton(interaction) {
-  const [prefix, response, eventId] = interaction.customId.split('_');
-  if (prefix !== 'rsvp') return;
+  const { customId, user } = interaction;
+  const [action, , eventId] = customId.split('_');
 
-  if (!global.rsvpStore[eventId]) {
-    global.rsvpStore[eventId] = { yes: [], no: [], maybe: [] };
+  if (!['yes', 'no', 'maybe'].includes(action)) {
+    return safeReply(interaction, {
+      content: '❌ Invalid RSVP action.',
+      ephemeral: true
+    });
   }
 
-  const member = await interaction.guild.members.fetch(interaction.user.id);
-  const displayName = member.nickname || member.user.username;
-
-  for (const key of ['yes', 'no', 'maybe']) {
-    global.rsvpStore[eventId][key] = global.rsvpStore[eventId][key].filter(
-      entry => entry.id !== interaction.user.id
-    );
+  let events = [];
+  try {
+    if (fs.existsSync(dataFile)) {
+      const raw = fs.readFileSync(dataFile);
+      events = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error(`[ERROR] Failed to read ${dataFile}:`, e.message);
+    return safeReply(interaction, {
+      content: '❌ Failed to process RSVP due to server error.',
+      ephemeral: true
+    });
   }
 
-  global.rsvpStore[eventId][response].push({ id: interaction.user.id, name: displayName });
+  const event = events.find(e => e.id === eventId);
+  if (!event) {
+    return safeReply(interaction, {
+      content: '❌ Event not found.',
+      ephemeral: true
+    });
+  }
 
-  const embed = EmbedBuilder.from(interaction.message.embeds[0]);
-  const names = (list) => list.length ? list.map(e => e.name).join('\n') : '-';
+  event.rsvps = event.rsvps || { yes: [], no: [], maybe: [] };
 
-  const filteredFields = embed.data.fields.filter(f =>
-    !f.name.startsWith('✅') && !f.name.startsWith('❌') && !f.name.startsWith('❔')
-  );
+  // Remove user from all RSVP lists
+  for (const key of Object.keys(event.rsvps)) {
+    event.rsvps[key] = event.rsvps[key].filter(id => id !== user.id);
+  }
 
-  embed.setFields([
-    ...filteredFields,
-    { name: `✅ Accepted (${global.rsvpStore[eventId].yes.length})`, value: names(global.rsvpStore[eventId].yes), inline: true },
-    { name: `❌ Absent`, value: names(global.rsvpStore[eventId].no), inline: true },
-    { name: `❔ Tentative`, value: names(global.rsvpStore[eventId].maybe), inline: true }
-  ]);
+  // Add user to the selected RSVP list
+  event.rsvps[action].push(user.id);
 
   try {
-    await interaction.update({ embeds: [embed] });
-  } catch (err) {
-    const code = err?.rawError?.code || err.code;
-    if (code === 10062) {
-      console.warn(`[RSVP_FAIL] Interaction expired (10062) for ${interaction.user.tag}`);
-    } else if (code === 40060) {
-      console.warn(`[RSVP_FAIL] Already acknowledged (40060) for ${interaction.user.tag}`);
-    } else {
-      console.error(`[RSVP_FAIL] Failed to update RSVP for ${interaction.user.tag}:`, err);
-    }
-
-    if (!interaction.replied && !interaction.deferred) {
-      try {
-        await interaction.followUp({
-          content: '⚠️ RSVP failed. Please try again.',
-          ephemeral: true
-        });
-      } catch (e) {
-        console.error(`[RSVP_FAIL] Failed to send fallback message:`, e);
-      }
-    }
+    fs.writeFileSync(dataFile, JSON.stringify(events, null, 2));
+  } catch (e) {
+    console.error(`[ERROR] Failed to write to ${dataFile}:`, e.message);
+    return safeReply(interaction, {
+      content: '❌ Failed to update RSVP due to server error.',
+      ephemeral: true
+    });
   }
+
+  // Update the original event message to reflect new RSVP counts
+  const eventMessage = await interaction.channel.messages.fetch(event.messageId);
+  const embed = eventMessage.embeds[0];
+
+  embed.fields = embed.fields.map(field => {
+    if (field.name.startsWith('✅')) {
+      field.value = event.rsvps.yes.map(id => `<@${id}>`).join('\n') || '-';
+      field.name = `✅ Accepted (${event.rsvps.yes.length})`;
+    } else if (field.name.startsWith('❌')) {
+      field.value = event.rsvps.no.map(id => `<@${id}>`).join('\n') || '-';
+      field.name = `❌ Absent (${event.rsvps.no.length})`;
+    } else if (field.name.startsWith('❔')) {
+      field.value = event.rsvps.maybe.map(id => `<@${id}>`).join('\n') || '-';
+      field.name = `❔ Tentative (${event.rsvps.maybe.length})`;
+    }
+    return field;
+  });
+
+  await eventMessage.edit({ embeds: [embed], components: [buildRSVPButtons(eventId)] });
+
+  return safeReply(interaction, {
+    content: `✅ Your RSVP has been updated to **${action.toUpperCase()}**.`,
+    ephemeral: true
+  });
 }
 
-module.exports = {
-  handleModal,
-  handleRSVPButton
-};
+module.exports = { handleRSVPButton };
