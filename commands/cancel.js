@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('cancel')
-    .setDescription('Cancel your current event creation or in-progress interaction.'),
+    .setDescription('Cancel any in-progress slash command flow.'),
 
   async execute(interaction) {
     const userId = interaction.user.id;
@@ -14,17 +14,17 @@ module.exports = {
       canceled = true;
     }
 
-    // Add any other stores here later, like:
-    // if (global.unitFormStore?.has(userId)) { ... }
+    // ⏳ Add other flows here as needed
+    // e.g., if (global.editEventStore?.has(userId)) { ... }
 
     if (canceled) {
       await interaction.reply({
-        content: '❌ Your in-progress form or event was canceled.',
+        content: '❌ Your in-progress command has been canceled.',
         ephemeral: true
       });
     } else {
       await interaction.reply({
-        content: '⚠️ You have no active interactions to cancel.',
+        content: '✅ You have no active commands to cancel.',
         ephemeral: true
       });
     }
