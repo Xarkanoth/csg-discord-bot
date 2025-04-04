@@ -6,9 +6,6 @@ const {
   ActionRowBuilder
 } = require('discord.js');
 
-const cooldowns = new Map(); // per-user cooldown
-const processedInteractions = new Set(); // interaction deduplication
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('event')
@@ -17,25 +14,13 @@ module.exports = {
   async execute(interaction) {
     console.log(`[EVENT] /event triggered by ${interaction.user.tag}`);
 
-    // Block duplicate processing of same interaction
-    if (processedInteractions.has(interaction.id)) {
-      console.warn(`[SKIP] Interaction ${interaction.id} already handled.`);
-      return;
-    }
-    processedInteractions.add(interaction.id);
-    setTimeout(() => processedInteractions.delete(interaction.id), 15000); // Keep for 15s
-
-    // Per-user debounce (prevents spam clicks)
-    if (cooldowns.has(interaction.user.id)) {
+    if (global.eventStepStore.has(interaction.user.id)) {
       return interaction.reply({
-        content: '⚠️ You already triggered the modal. Please wait a moment.',
+        content: '⚠️ You already have an event in progress. Use `/cancel` to start over.',
         ephemeral: true
       });
     }
-    cooldowns.set(interaction.user.id, true);
-    setTimeout(() => cooldowns.delete(interaction.user.id), 3000); // 3s cooldown
 
-    // === Build modal ===
     const modal = new ModalBuilder()
       .setCustomId('event_modal_step1')
       .setTitle('📋 Create New Event — Step 1');
@@ -70,23 +55,14 @@ module.exports = {
       .setStyle(TextInputStyle.Short)
       .setRequired(true);
 
-    // Optionally include if you're ready for 6th field
-    // const descInput = new TextInputBuilder()
-    //   .setCustomId('event_description')
-    //   .setLabel('Event Description')
-    //   .setStyle(TextInputStyle.Paragraph)
-    //   .setRequired(false);
-
     modal.addComponents(
       new ActionRowBuilder().addComponents(titleInput),
       new ActionRowBuilder().addComponents(dateInput),
       new ActionRowBuilder().addComponents(timeInput),
       new ActionRowBuilder().addComponents(tzInput),
       new ActionRowBuilder().addComponents(regionInput)
-      // new ActionRowBuilder().addComponents(descInput) // Enable if needed
     );
 
-    // === Safe modal execution ===
     try {
       if (interaction.replied || interaction.deferred) {
         console.warn('❌ Interaction already acknowledged. Skipping modal.');
@@ -96,7 +72,6 @@ module.exports = {
       await interaction.showModal(modal);
     } catch (err) {
       console.error('❌ Error showing modal:', err);
-
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
