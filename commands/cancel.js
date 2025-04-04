@@ -9,13 +9,13 @@ module.exports = {
     const userId = interaction.user.id;
     let canceled = false;
 
+    // ✅ Clear /event flow if active
     if (global.eventStepStore?.has(userId)) {
       global.eventStepStore.delete(userId);
       canceled = true;
     }
 
-    // ⏳ Add other flows here as needed
-    // e.g., if (global.editEventStore?.has(userId)) { ... }
+    // 🔧 (Add future flow resets here if needed)
 
     if (canceled) {
       await interaction.reply({
