@@ -1,6 +1,7 @@
 // events/rsvp-handler.js
 const fs = require('fs');
 const path = require('path');
+const { EmbedBuilder } = require('discord.js');
 const dataFile = path.join(__dirname, '../data/events.json');
 
 async function handleRSVPButton(interaction) {
@@ -32,6 +33,40 @@ async function handleRSVPButton(interaction) {
     event.rsvps[action].push(userId);
   } else {
     return interaction.reply({ content: '❌ Invalid RSVP option.', ephemeral: true });
+  }
+
+  // Attempt to update the original message embed with formatted RSVP columns
+  try {
+    const channel = await interaction.client.channels.fetch(event.channelId);
+    const message = await channel.messages.fetch(event.messageId);
+
+    const formatRSVPList = (ids) =>
+      ids.length > 0 ? ids.map(id => `<@${id}>`).join('\n') : '-';
+
+    const updatedEmbed = EmbedBuilder.from(message.embeds[0]);
+
+    // Remove all fields and replace with RSVP section only
+    updatedEmbed.setFields(
+      {
+        name: '✅ Accepted (' + event.rsvps.yes.length + ')',
+        value: formatRSVPList(event.rsvps.yes),
+        inline: true
+      },
+      {
+        name: '❌ Absent (' + event.rsvps.no.length + ')',
+        value: formatRSVPList(event.rsvps.no),
+        inline: true
+      },
+      {
+        name: '🤔 Tentative (' + event.rsvps.maybe.length + ')',
+        value: formatRSVPList(event.rsvps.maybe),
+        inline: true
+      }
+    );
+
+    await message.edit({ embeds: [updatedEmbed] });
+  } catch (err) {
+    console.warn('[RSVP] Could not update embed RSVP list:', err.message);
   }
 
   try {

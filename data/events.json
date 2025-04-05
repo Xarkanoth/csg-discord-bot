@@ -1,0 +1,198 @@
+[
+  {
+    "id": "1743867029919-467",
+    "title": "CSG Monday EU Linebattle",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [
+        "607541262517665813"
+      ],
+      "maybe": []
+    },
+    "messageId": "1358101500735520838",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867258225-184",
+    "title": "Testing Event",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [
+        "607541262517665813"
+      ],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358102458093539519",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867409703-325",
+    "title": "Testing Event",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [
+        "607541262517665813"
+      ],
+      "maybe": []
+    },
+    "messageId": "1358103093513818360",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867554252-820",
+    "title": "Testin",
+    "date": "Tuesday",
+    "time": "15:00",
+    "timezone": "BST",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [
+        "607541262517665813"
+      ],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358103699720900679",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867733992-768",
+    "title": "CSg Monday Testing",
+    "date": "Monday",
+    "time": "17:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358104453659623556",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867779987-667",
+    "title": "testing",
+    "date": "tomorrow",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [
+        "607541262517665813"
+      ],
+      "maybe": []
+    },
+    "messageId": "1358104646719373393",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743867885427-750",
+    "title": "Monday EU",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [
+        "607541262517665813"
+      ],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358105088845156472",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743868178610-175",
+    "title": "Monday EU Linebattle",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [
+        "607541262517665813"
+      ],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358106318568947943",
+    "channelId": "980145545291133068"
+  },
+  {
+    "id": "1743868250981-981",
+    "title": "testing",
+    "date": "monday",
+    "time": "15:00",
+    "timezone": "utc",
+    "region": "NA",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [],
+      "maybe": [
+        "607541262517665813"
+      ]
+    },
+    "messageId": "1358106622173642884",
+    "channelId": "980145545291133068"
+  }
+]
