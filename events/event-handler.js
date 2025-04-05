@@ -2,19 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { DateTime } = require('luxon');
 const {
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
-  MessageFlags
+  ActionRowBuilder,
+  EmbedBuilder
 } = require('discord.js');
 
 const dataFile = path.join(__dirname, '../events/events.json');
 
-// Utils
 function resolveWeekday(input) {
   const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const now = DateTime.now();
@@ -29,6 +24,21 @@ function resolveWeekday(input) {
   return now.plus({ days: daysUntil });
 }
 
+function parseDuration(input) {
+  const match = input?.match(/(\\d+)([dhm])/i);
+  if (!match) return null;
+
+  const value = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+
+  switch (unit) {
+    case 'd': return { days: value };
+    case 'h': return { hours: value };
+    case 'm': return { minutes: value };
+    default: return null;
+  }
+}
+
 function buildRSVPButtons(eventId) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`rsvp_yes_${eventId}`).setLabel('✅ Going').setStyle(ButtonStyle.Success),
@@ -38,11 +48,8 @@ function buildRSVPButtons(eventId) {
 }
 
 async function postEvent(event, interaction) {
-  const { title, date, time, timezone, region } = event;
-  let parsedDate;
-
-  const weekDate = resolveWeekday(date);
-  parsedDate = weekDate ? weekDate : DateTime.fromFormat(date, 'yyyy-MM-dd');
+  const { title, date, time, timezone, region, postAdvance, repeatEvery } = event;
+  let parsedDate = resolveWeekday(date) || DateTime.fromFormat(date, 'yyyy-MM-dd');
 
   const datetime = parsedDate.setZone(timezone).set({
     hour: Number(time.split(':')[0]),
@@ -57,13 +64,14 @@ async function postEvent(event, interaction) {
     time,
     timezone,
     region,
+    postAdvance: postAdvance || { hours: 4 },
+    repeatEvery: repeatEvery || null,
     rsvps: { yes: [], no: [], maybe: [] },
     createdBy: interaction.user.tag,
     messageId: null,
     channelId: interaction.channel.id
   };
 
-  // Save to events.json
   let events = [];
   try {
     if (fs.existsSync(dataFile)) {
@@ -109,31 +117,7 @@ async function postEventFromScheduler(event, client, channelId) {
   });
 
   const eventId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const newEvent = {
-    id: eventId,
-    title,
-    date,
-    time,
-    timezone,
-    region,
-    rsvps: { yes: [], no: [], maybe: [] },
-    createdBy: 'Scheduled',
-    messageId: null,
-    channelId
-  };
-
-  let events = [];
-  try {
-    if (fs.existsSync(dataFile)) {
-      const raw = fs.readFileSync(dataFile);
-      events = JSON.parse(raw);
-    }
-  } catch (err) {
-    console.error(`[ERROR] Failed reading ${dataFile}:`, err.message);
-  }
-
-  events.push(newEvent);
-  fs.writeFileSync(dataFile, JSON.stringify(events, null, 2));
+  const newEvent = { ...event, id: eventId };
 
   const embed = new EmbedBuilder()
     .setTitle(`📅 ${title}`)
@@ -152,6 +136,16 @@ async function postEventFromScheduler(event, client, channelId) {
   });
 
   newEvent.messageId = message.id;
+
+  let events = [];
+  if (fs.existsSync(dataFile)) {
+    const raw = fs.readFileSync(dataFile);
+    events = JSON.parse(raw);
+  }
+
+  const idx = events.findIndex(e => e.id === event.id);
+  if (idx !== -1) events[idx] = newEvent;
+
   fs.writeFileSync(dataFile, JSON.stringify(events, null, 2));
 }
 
@@ -162,14 +156,20 @@ async function handleModal(interaction) {
   }
 
   await interaction.deferReply({ ephemeral: true });
+
   const fields = interaction.fields;
   const title = fields.getTextInputValue('event_title');
   const date = fields.getTextInputValue('event_date');
   const time = fields.getTextInputValue('event_time');
   const timezone = fields.getTextInputValue('event_timezone');
   const region = fields.getTextInputValue('event_region');
+  const postAdvanceStr = fields.getTextInputValue('event_post_advance');
+  const repeatEveryStr = fields.getTextInputValue('event_repeat_every');
 
-  await postEvent({ title, date, time, timezone, region }, interaction);
+  const postAdvance = parseDuration(postAdvanceStr) || { hours: 4 };
+  const repeatEvery = parseDuration(repeatEveryStr);
+
+  await postEvent({ title, date, time, timezone, region, postAdvance, repeatEvery }, interaction);
 }
 
 async function handleRSVPButton(interaction) {
@@ -188,7 +188,6 @@ async function handleRSVPButton(interaction) {
     return interaction.reply({ content: '⚠️ Event not found.', ephemeral: true });
   }
 
-  // Remove user from all lists
   Object.keys(event.rsvps).forEach(key => {
     event.rsvps[key] = event.rsvps[key].filter(id => id !== interaction.user.id);
   });
