@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "1743853377478-498",
+    "title": "CSG Event",
+    "date": "Monday",
+    "time": "15:00",
+    "timezone": "UTC",
+    "region": "NA",
+    "rsvps": {
+      "yes": [],
+      "no": [],
+      "maybe": []
+    },
+    "createdBy": "xarkanoth",
+    "messageId": null,
+    "channelId": "980145545291133068"
+  }
+]

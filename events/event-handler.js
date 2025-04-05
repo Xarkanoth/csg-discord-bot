@@ -87,7 +87,7 @@ async function postEvent(event, interaction) {
     .setFooter({ text: `Created by ${interaction.user.tag}` })
     .setTimestamp();
 
-  const message = await interaction.reply({
+  const message = await interaction.editReply({
     content: '📢 Event Created!',
     embeds: [embed],
     components: [buildRSVPButtons(eventId)]
@@ -98,6 +98,7 @@ async function postEvent(event, interaction) {
 }
 
 async function handleModal(interaction) {
+  await interaction.deferReply({ ephemeral: true });
   const fields = interaction.fields;
   const title = fields.getTextInputValue('event_title');
   const date = fields.getTextInputValue('event_date');

@@ -46,20 +46,18 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
-      await command.execute(interaction);
+      await command.execute(interaction); // ✅ modal called here
     } catch (err) {
       console.error(err);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: '❌ There was an error executing that command.',
+          content: '⚠️ There was an error executing that command.',
           flags: MessageFlags.Ephemeral
         });
       }
     }
-
   } else {
-    // Pass buttons/modals/etc. to interaction handler
-    await handleInteraction(interaction, client);
+    await handleInteraction(interaction, client); // ✅ fallback for buttons/modals
   }
 });
 
