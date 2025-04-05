@@ -50,13 +50,13 @@ module.exports = {
 
     const advanceInput = new TextInputBuilder()
       .setCustomId('event_post_advance')
-      .setLabel('Post how long before? (e.g. 4h, 1d, 30m)')
+      .setLabel('Post how long before? (e.g. 4h, 30m)')
       .setStyle(TextInputStyle.Short)
       .setRequired(false);
 
     const repeatInput = new TextInputBuilder()
       .setCustomId('event_repeat_every')
-      .setLabel('Repeat how often? (optional, e.g. 1h, 0 for once)')
+      .setLabel('Repeat interval? (e.g. 1h, 0 for once)')
       .setStyle(TextInputStyle.Short)
       .setRequired(false);
 
