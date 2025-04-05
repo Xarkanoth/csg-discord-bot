@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { MessageFlags } = require('discord.js');
 require('dotenv').config();
 
 const PERMS_FILE = path.join(__dirname, '../data/command-roles.json');
@@ -21,7 +22,7 @@ module.exports = async function checkPermission(interaction, commandName) {
     if (!hasMatch) {
       await interaction.reply({
         content: '❌ You do not have permission to use this command.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
       return false;
     }
@@ -32,7 +33,7 @@ module.exports = async function checkPermission(interaction, commandName) {
     try {
       await interaction.reply({
         content: '❌ There was an error checking your permissions.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     } catch {}
     return false;

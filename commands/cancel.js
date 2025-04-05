@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -20,12 +20,12 @@ module.exports = {
     if (canceled) {
       await interaction.reply({
         content: '❌ Your in-progress command has been canceled.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     } else {
       await interaction.reply({
         content: '✅ You have no active commands to cancel.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }

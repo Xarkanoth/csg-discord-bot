@@ -2,7 +2,8 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  ActionRowBuilder
+  ActionRowBuilder,
+  MessageFlags,
 } = require('discord.js');
 
 const { handleRSVPButton } = require('../events/rsvp');
@@ -69,6 +70,6 @@ module.exports = async (interaction) => {
 
   return interaction.reply({
     content: '❌ Unknown button interaction.',
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 };

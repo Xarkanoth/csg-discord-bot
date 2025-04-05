@@ -2,7 +2,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  MessageFlags,
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -85,7 +86,7 @@ async function postEvent(event, interaction) {
   if (!datetime.isValid) {
     return safeReply(interaction, {
       content: `❌ Invalid date/time or timezone. Please ensure the format is:\n- Date: Weekday (e.g., Monday) or YYYY-MM-DD\n- Time: HH:mm (24hr)\n- Timezone: IANA zone like "UTC", "Europe/Berlin", "America/New_York"`,
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 

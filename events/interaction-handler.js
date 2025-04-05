@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { MessageFlags } = require('discord.js');
 const handleButton = require('../events/rsvp').handleRSVPButton;
 const { handleModal } = require('../events/rsvp');
 require('dotenv').config();
@@ -26,7 +27,7 @@ async function safeReply(interaction, data) {
     if (!interaction.deferred && !interaction.replied) {
       await interaction.reply(data);
     } else {
-      await interaction.followUp({ ...data, ephemeral: true });
+      await interaction.followUp({ ...data, flags: MessageFlags.Ephemeral });
     }
   } catch (err) {
     const code = err?.rawError?.code || err.code;
@@ -56,7 +57,7 @@ module.exports = async function interactionHandler(interaction) {
     if (!hasPermission) {
       return safeReply(interaction, {
         content: '❌ You do not have permission to use this command.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -66,7 +67,7 @@ module.exports = async function interactionHandler(interaction) {
       console.error(`[ERROR] Slash command failed:`, err);
       await safeReply(interaction, {
         content: '❌ There was an error executing that command.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
     return;
@@ -80,7 +81,7 @@ module.exports = async function interactionHandler(interaction) {
       console.error(`[ERROR] Button interaction failed:`, err);
       await safeReply(interaction, {
         content: '❌ Button action failed.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
     return;
@@ -94,7 +95,7 @@ module.exports = async function interactionHandler(interaction) {
       console.error(`[ERROR] Modal submission failed:`, err);
       await safeReply(interaction, {
         content: '❌ Modal submission failed.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
     return;

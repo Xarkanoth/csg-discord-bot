@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { DateTime } = require('luxon');
@@ -30,7 +30,7 @@ async function handleRSVPButton(interaction) {
   if (!['yes', 'no', 'maybe'].includes(action)) {
     return safeReply(interaction, {
       content: '❌ Invalid RSVP action.',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -44,7 +44,7 @@ async function handleRSVPButton(interaction) {
     console.error(`[ERROR] Failed to read ${dataFile}:`, e.message);
     return safeReply(interaction, {
       content: '❌ Failed to process RSVP due to server error.',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -52,7 +52,7 @@ async function handleRSVPButton(interaction) {
   if (!event) {
     return safeReply(interaction, {
       content: '❌ Event not found.',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -72,7 +72,7 @@ async function handleRSVPButton(interaction) {
     console.error(`[ERROR] Failed to write to ${dataFile}:`, e.message);
     return safeReply(interaction, {
       content: '❌ Failed to update RSVP due to server error.',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -98,7 +98,7 @@ async function handleRSVPButton(interaction) {
 
   return safeReply(interaction, {
     content: `✅ Your RSVP has been updated to **${action.toUpperCase()}**.`,
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 

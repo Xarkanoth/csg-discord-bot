@@ -2,7 +2,9 @@ require('dotenv').config();
 const {
   Client,
   GatewayIntentBits,
-  Collection
+  Collection,
+  Message,
+  MessageFlags
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -50,7 +52,7 @@ client.on('interactionCreate', async interaction => {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: '❌ There was an error executing that command.',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
     }
