@@ -2,7 +2,6 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits } = require('discord.js');
-const { postEventFromScheduler } = require('./event-handler');
 const { DateTime, Duration } = require('luxon');
 require('dotenv').config();
 

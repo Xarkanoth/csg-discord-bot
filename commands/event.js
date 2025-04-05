@@ -1,19 +1,28 @@
 const { SlashCommandBuilder } = require('discord.js');
-const buildModal1 = require('../events/modals/modal-1');
+const { startEventDMFlow } = require('../events/text-event-form');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('event')
-    .setDescription('Create a new event through a guided form'),
+    .setDescription('Create a new event via DMs'),
 
   async execute(interaction) {
-    console.log(`[EVENT] /event triggered by ${interaction.user.tag}`);
-    const modal = buildModal1();
-
     try {
-      await interaction.showModal(modal);
+      await interaction.reply({
+        content: '📩 Check your DMs — I’ll walk you through creating your event!',
+        ephemeral: true
+      });
+
+      await startEventDMFlow(interaction.user, interaction.channelId);
     } catch (err) {
-      console.error('❌ Failed to show modal:', err);
+      console.error('[ERROR] Could not start DM event flow:', err);
+
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '❌ Could not start event creation. Try again later.',
+          ephemeral: true
+        });
+      }
     }
   }
 };

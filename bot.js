@@ -10,17 +10,19 @@ const fs = require('fs');
 const path = require('path');
 const { startMonitoring } = require('./monitor');
 const { runScheduler } = require('./events/scheduler');
-const handleInteraction = require('./events/interaction-handler');
+const { handleRSVPButton } = require('./events/rsvp-handler');
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
+  ],
+  partials: ['CHANNEL']
 });
 
-// === Load Commands into Collection ===
+// ========== Load Commands ==========
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -31,52 +33,50 @@ for (const file of commandFiles) {
   if (command?.data?.name) {
     client.commands.set(command.data.name, command);
   } else {
-    console.warn(`[WARN] Skipping invalid or incomplete command file: ${file}`);
+    console.warn(`[WARN] Skipping invalid command file: ${file}`);
   }
 }
 
-// === Global State ===
+// ========== Global State ==========
 if (!global.eventStepStore) global.eventStepStore = new Map();
 global.rsvpStore = {};
 
-// === Interaction Handling ===
+// ========== Interaction Handler ==========
 client.on('interactionCreate', async interaction => {
   if (interaction.isCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
 
     try {
-      await command.execute(interaction); // ✅ modal called here
+      console.log(`[COMMAND] /${interaction.commandName} triggered by ${interaction.user.tag}`);
+      await command.execute(interaction);
     } catch (err) {
-      console.error(err);
+      console.error('[COMMAND ERROR]', err);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: '⚠️ There was an error executing that command.',
-          flags: MessageFlags.Ephemeral
-        });
+        await interaction.reply({ content: '❌ Command failed.', ephemeral: true });
       }
     }
-  } else {
-    await handleInteraction(interaction, client); // ✅ fallback for buttons/modals
+  } else if (interaction.isButton() && interaction.customId.startsWith('rsvp_')) {
+    await handleRSVPButton(interaction);
   }
 });
 
-// === Ready Event ===
-client.once('ready', () => {
+// ========== Ready Event ==========
+client.once('ready', async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
   const channel = client.channels.cache.get(process.env.SERVER_STATS_CHANNEL_ID);
   if (!channel) {
-    console.error("❌ SERVER_STATS_CHANNEL_ID is invalid or missing.");
+    console.error('❌ SERVER_STATS_CHANNEL_ID is invalid or missing.');
     return;
   }
 
-  startMonitoring((message) => {
+  startMonitoring(message => {
     channel.send(message);
   });
 
   setInterval(() => runScheduler(client), 60 * 60 * 1000); // every hour
 });
 
-// === Login ===
+// ========== Login ==========
 client.login(process.env.BOT_TOKEN);
