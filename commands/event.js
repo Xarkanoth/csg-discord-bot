@@ -5,7 +5,6 @@ const {
   TextInputStyle,
   ActionRowBuilder
 } = require('discord.js');
-const checkPermission = require('../utils/check-permission');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -15,12 +14,10 @@ module.exports = {
   async execute(interaction) {
     console.log(`[EVENT] /event triggered by ${interaction.user.tag}`);
 
-    const allowed = await checkPermission(interaction, 'event');
-    if (!allowed) return; // Permission handler already replied
-
+    // 🧠 Step 1: Create modal
     const modal = new ModalBuilder()
       .setCustomId('event_modal_step1')
-      .setTitle('📋 Create New Event — Step 1');
+      .setTitle('📝 Create New Event • Step 1');
 
     const titleInput = new TextInputBuilder()
       .setCustomId('event_title')
@@ -52,6 +49,7 @@ module.exports = {
       .setStyle(TextInputStyle.Short)
       .setRequired(true);
 
+    // 🧠 Step 2: Add fields to modal
     modal.addComponents(
       new ActionRowBuilder().addComponents(titleInput),
       new ActionRowBuilder().addComponents(dateInput),
@@ -60,10 +58,12 @@ module.exports = {
       new ActionRowBuilder().addComponents(regionInput)
     );
 
+    // 🧠 Step 3: Show modal immediately
     try {
       await interaction.showModal(modal);
     } catch (err) {
       console.error('❌ Failed to show modal:', err);
     }
+
   }
 };
