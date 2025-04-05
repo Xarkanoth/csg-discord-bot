@@ -1,26 +1,49 @@
-const fs = require('fs');
-const path = require('path');
 const { MessageFlags } = require('discord.js');
-const handleButton = require('../events/rsvp').handleRSVPButton;
-const { handleModal } = require('../events/rsvp');
-require('dotenv').config();
+const { handleModal, handleRSVPButton } = require('./event-handler');
 
-const PERMS_FILE = path.join(__dirname, '../data/command-roles.json');
-const OWNER_ID = process.env.BOT_OWNER_ID;
-const MANAGER_ROLE_ID = process.env.MANAGER_ROLE_ID;
-
-// Load role permissions
-let rolePermissions = {};
-if (fs.existsSync(PERMS_FILE)) {
-  try {
-    const raw = fs.readFileSync(PERMS_FILE);
-    rolePermissions = JSON.parse(raw);
-  } catch (err) {
-    console.error('[ERROR] Failed to read command-roles.json:', err.message);
+module.exports = async function interactionHandler(interaction) {
+  if (interaction.isChatInputCommand()) {
+    const command = interaction.client.commands.get(interaction.commandName);
+    if (!command) return;
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error('[ERROR] Slash command failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ There was an error executing that command.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+    return;
   }
-}
 
-// ✅ Unified Safe Reply
+  if (interaction.isButton()) {
+    try {
+      await handleRSVPButton(interaction);
+    } catch (err) {
+      console.error('[ERROR] Button interaction failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ Button action failed.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+    return;
+  }
+
+  if (interaction.isModalSubmit()) {
+    try {
+      await handleModal(interaction);
+    } catch (err) {
+      console.error('[ERROR] Modal submission failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ Modal submission failed.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+    return;
+  }
+};
+
 async function safeReply(interaction, data) {
   const tag = interaction.user?.tag || 'unknown user';
   try {
@@ -40,64 +63,3 @@ async function safeReply(interaction, data) {
     }
   }
 }
-
-module.exports = async function interactionHandler(interaction) {
-  // === Slash Commands ===
-  if (interaction.isChatInputCommand()) {
-    const command = interaction.client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    const requiredRoles = rolePermissions[interaction.commandName] || [];
-    const memberRoles = interaction.member?.roles?.cache.map(role => role.id) || [];
-    const hasPermission =
-      interaction.user.id === OWNER_ID ||
-      memberRoles.includes(MANAGER_ROLE_ID) ||
-      requiredRoles.some(role => memberRoles.includes(role));
-
-    if (!hasPermission) {
-      return safeReply(interaction, {
-        content: '❌ You do not have permission to use this command.',
-        flags: MessageFlags.Ephemeral
-      });
-    }
-
-    try {
-      await command.execute(interaction);
-    } catch (err) {
-      console.error(`[ERROR] Slash command failed:`, err);
-      await safeReply(interaction, {
-        content: '❌ There was an error executing that command.',
-        flags: MessageFlags.Ephemeral
-      });
-    }
-    return;
-  }
-
-  // === Buttons ===
-  if (interaction.isButton()) {
-    try {
-      await handleButton(interaction);
-    } catch (err) {
-      console.error(`[ERROR] Button interaction failed:`, err);
-      await safeReply(interaction, {
-        content: '❌ Button action failed.',
-        flags: MessageFlags.Ephemeral
-      });
-    }
-    return;
-  }
-
-  // === Modals ===
-  if (interaction.isModalSubmit()) {
-    try {
-      await handleModal(interaction);
-    } catch (err) {
-      console.error(`[ERROR] Modal submission failed:`, err);
-      await safeReply(interaction, {
-        content: '❌ Modal submission failed.',
-        flags: MessageFlags.Ephemeral
-      });
-    }
-    return;
-  }
-};

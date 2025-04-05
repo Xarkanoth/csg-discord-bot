@@ -1,62 +1,67 @@
-const fs = require('fs');
-const path = require('path');
-const { DateTime } = require('luxon');
-const { postEvent } = require('./post-event');
+// interaction-handler.js
 
-const dataFile = path.join(__dirname, '../events/events.json');
+const { MessageFlags } = require('discord.js');
+const { handleModal, handleRSVPButton, postEvent } = require('./event-handler');
 
-function runScheduler(client) {
-  console.log('[SCHEDULER] Running recurring event check...');
-  const now = DateTime.now();
-
-  let events = [];
-  try {
-    if (fs.existsSync(dataFile)) {
-      const raw = fs.readFileSync(dataFile);
-      events = JSON.parse(raw);
+module.exports = async function interactionHandler(interaction) {
+  if (interaction.isChatInputCommand()) {
+    const command = interaction.client.commands.get(interaction.commandName);
+    if (!command) return;
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error('[ERROR] Slash command failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ There was an error executing that command.',
+        flags: MessageFlags.Ephemeral
+      });
     }
-  } catch (e) {
-    console.error('[SCHEDULER ERROR] Could not read events.json:', e.message);
     return;
   }
 
-  for (const event of events) {
-    if (!event.recurring) continue;
-
-    const lastDate = DateTime.fromFormat(`${event.date} ${event.time}`, 'yyyy-MM-dd HH:mm', { zone: event.timezone });
-    let nextDate = null;
-
-    if (event.recurring === 'weekly') {
-      nextDate = lastDate.plus({ weeks: 1 });
-    } else if (event.recurring === 'monthly') {
-      nextDate = lastDate.plus({ months: 1 });
+  if (interaction.isButton()) {
+    try {
+      await handleRSVPButton(interaction);
+    } catch (err) {
+      console.error('[ERROR] Button interaction failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ Button action failed.',
+        flags: MessageFlags.Ephemeral
+      });
     }
-
-    if (!nextDate || now < nextDate.startOf('hour')) continue;
-
-    // Update date in ISO format
-    const updatedEvent = {
-      ...event,
-      date: nextDate.toFormat('yyyy-MM-dd')
-    };
-
-    const channel = client.channels.cache.get(event.channelId);
-    if (!channel) {
-      console.error(`[SCHEDULER] Channel not found: ${event.channelId}`);
-      continue;
-    }
-
-    postEvent(updatedEvent, { reply: (msg) => channel.send(msg) });
-
-    event.date = nextDate.toFormat('yyyy-MM-dd'); // update source event date
+    return;
   }
 
-  // Save back to file
+  if (interaction.isModalSubmit()) {
+    try {
+      await handleModal(interaction);
+    } catch (err) {
+      console.error('[ERROR] Modal submission failed:', err);
+      await safeReply(interaction, {
+        content: '⚠️ Modal submission failed.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+    return;
+  }
+};
+
+async function safeReply(interaction, data) {
+  const tag = interaction.user?.tag || 'unknown user';
   try {
-    fs.writeFileSync(dataFile, JSON.stringify(events, null, 2));
-  } catch (e) {
-    console.error('[SCHEDULER ERROR] Failed to save events.json:', e.message);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply(data);
+    } else {
+      await interaction.followUp({ ...data, flags: MessageFlags.Ephemeral });
+    }
+  } catch (err) {
+    const code = err?.rawError?.code || err.code;
+    if (code === 10062) {
+      console.warn(`[SAFE_REPLY] Interaction expired (10062) for ${tag}`);
+    } else if (code === 40060) {
+      console.warn(`[SAFE_REPLY] Already acknowledged (40060) for ${tag}`);
+    } else {
+      console.error(`[SAFE_REPLY] Unexpected error for ${tag}:`, err);
+    }
   }
 }
-
-module.exports = { runScheduler };
