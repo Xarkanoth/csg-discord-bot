@@ -9,18 +9,20 @@ function reloadModule(filePath) {
 }
 
 function watchAllModules(exclude = [], onReload = () => {}) {
-  const watcher = chokidar.watch(['./**/*.js'], {
+  const rootPath = path.resolve(__dirname);
+  const watcher = chokidar.watch(`${rootPath}/**/*.js`, {
     ignored: [
-      '**/node_modules/**',
-      './events/scheduler.js',
-      './monitor.js'
+      `${rootPath}/node_modules/**`,
+      `${rootPath}/events/scheduler.js`,
+      `${rootPath}/monitor.js`
     ],
     ignoreInitial: true
   });
 
-  console.log('👀 Watching for changes...');
+  console.log('👀 Watching for changes in:', rootPath);
 
   watcher.on('change', (file) => {
+    console.log(`📂 File changed: ${file}`);
     const base = path.basename(file);
 
     if (exclude.includes(base)) {
@@ -29,7 +31,7 @@ function watchAllModules(exclude = [], onReload = () => {}) {
     }
 
     try {
-      const updated = reloadModule(path.resolve(file));
+      const updated = reloadModule(file);
       onReload(base, updated);
       console.log(`🔁 Reloaded: ${base}`);
     } catch (err) {

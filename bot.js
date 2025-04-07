@@ -11,6 +11,11 @@ const path = require('path');
 const { startMonitoring } = require('./monitor');
 const { runScheduler } = require('./events/scheduler');
 const { handleRSVPButton } = require('./events/rsvp-handler');
+const watchAllModules = require('./hot-reload');
+
+watchAllModules([], (filename, updated) => {
+  console.log(`🔁 Auto-reloaded: ${filename}`);
+});
 
 const client = new Client({
   intents: [
@@ -77,13 +82,6 @@ client.once('ready', async () => {
 
   setInterval(() => runScheduler(client), 60 * 60 * 1000); // every hour
 });
-
-const watchAllModules = require('./hot-reload');
-
-watchAllModules([], (fileName, updatedModule) => {
-  console.log(`🔁 Reloaded module: ${fileName}`);
-});
-
 
 // ========== Login ==========
 client.login(process.env.BOT_TOKEN);
