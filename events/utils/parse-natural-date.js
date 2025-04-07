@@ -1,35 +1,24 @@
-// utils/parse-natural-date.js
+// ⬇️ Replace your current date parsing logic with this version
+const chrono = require('chrono-node');
 const { DateTime } = require('luxon');
 
 /**
- * Parses natural language into a Luxon DateTime (e.g., "Monday" → next Monday)
- * @param {string} input - natural string like "monday" or "tomorrow"
- * @param {string} time - fallback time (e.g., "15:00")
- * @param {string} timezone - default timezone to apply
+ * Parses a natural language or ISO-formatted datetime string into a Luxon DateTime.
+ * @param {string} input - Input string such as "Monday 15:00 UTC"
+ * @returns {DateTime|null} - Parsed Luxon DateTime or null if invalid
  */
-module.exports = function parseNaturalDate(input, time = '12:00', timezone = 'UTC') {
-  const normalized = input.trim().toLowerCase();
-  const now = DateTime.now().setZone(timezone);
-  let targetDate;
+function parseNaturalDate(input) {
+  if (!input || typeof input !== 'string') return null;
 
-  if (normalized === 'today') {
-    targetDate = now;
-  } else if (normalized === 'tomorrow') {
-    targetDate = now.plus({ days: 1 });
-  } else {
-    // Try to match a weekday (e.g., "monday")
-    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const targetDay = weekdays.indexOf(normalized);
+  const parsedDate = chrono.parseDate(input);
+  if (!parsedDate) return null;
 
-    if (targetDay >= 0) {
-      let daysToAdd = (targetDay - now.weekday + 7) % 7;
-      if (daysToAdd === 0) daysToAdd = 7; // always schedule the *next* weekday
-      targetDate = now.plus({ days: daysToAdd });
-    }
-  }
+  // Attempt to extract the timezone from the input string manually
+  const zoneMatch = input.match(/\b([A-Za-z_]+\/\w+|UTC|GMT|EST|PST|CET|[A-Z]{2,})\b/);
+  const zone = zoneMatch ? zoneMatch[1] : 'UTC';
 
-  if (!targetDate || !targetDate.isValid) return null;
+  const date = DateTime.fromJSDate(parsedDate, { zone });
+  return date.isValid ? date : null;
+}
 
-  const [hour, minute] = time.split(':').map(Number);
-  return targetDate.set({ hour, minute });
-};
+module.exports = parseNaturalDate;
