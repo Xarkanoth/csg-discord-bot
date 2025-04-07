@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder } = require('discord.js');
+const formatEventEmbed = require('./utils/format-event-embed');
+
 const dataFile = path.join(__dirname, '../data/events.json');
 
 async function handleRSVPButton(interaction) {
@@ -20,7 +22,7 @@ async function handleRSVPButton(interaction) {
 
   const event = events.find(e => e.id === eventId);
   if (!event) {
-    return interaction.reply({ content: '❌ Event not found.', ephemeral: true });
+    return interaction.reply({ content: '⚠️ Event not found.', ephemeral: true });
   }
 
   // Remove from all RSVP lists
@@ -32,38 +34,15 @@ async function handleRSVPButton(interaction) {
   if (event.rsvps[action]) {
     event.rsvps[action].push(userId);
   } else {
-    return interaction.reply({ content: '❌ Invalid RSVP option.', ephemeral: true });
+    return interaction.reply({ content: '⚠️ Invalid RSVP option.', ephemeral: true });
   }
 
-  // Attempt to update the original message embed with formatted RSVP columns
   try {
     const channel = await interaction.client.channels.fetch(event.channelId);
     const message = await channel.messages.fetch(event.messageId);
 
-    const formatRSVPList = (ids) =>
-      ids.length > 0 ? ids.map(id => `<@${id}>`).join('\n') : '-';
-
-    const updatedEmbed = EmbedBuilder.from(message.embeds[0]);
-
-    // Remove all fields and replace with RSVP section only
-    updatedEmbed.setFields(
-      {
-        name: '✅ Accepted (' + event.rsvps.yes.length + ')',
-        value: formatRSVPList(event.rsvps.yes),
-        inline: true
-      },
-      {
-        name: '❌ Absent (' + event.rsvps.no.length + ')',
-        value: formatRSVPList(event.rsvps.no),
-        inline: true
-      },
-      {
-        name: '🤔 Tentative (' + event.rsvps.maybe.length + ')',
-        value: formatRSVPList(event.rsvps.maybe),
-        inline: true
-      }
-    );
-
+    // ✨ Use the consistent embed formatter
+    const updatedEmbed = formatEventEmbed(event);
     await message.edit({ embeds: [updatedEmbed] });
   } catch (err) {
     console.warn('[RSVP] Could not update embed RSVP list:', err.message);
@@ -77,7 +56,7 @@ async function handleRSVPButton(interaction) {
     });
   } catch (err) {
     console.error('[RSVP] Failed to save RSVP:', err);
-    await interaction.reply({ content: '❌ Failed to save your RSVP.', ephemeral: true });
+    await interaction.reply({ content: '⚠️ Failed to save your RSVP.', ephemeral: true });
   }
 }
 

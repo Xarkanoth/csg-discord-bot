@@ -30,3 +30,4 @@ module.exports = function parseDuration(input) {
     default: return null;
   }
 };
+

@@ -78,5 +78,12 @@ client.once('ready', async () => {
   setInterval(() => runScheduler(client), 60 * 60 * 1000); // every hour
 });
 
+const watchAllModules = require('./hot-reload');
+
+watchAllModules([], (fileName, updatedModule) => {
+  console.log(`🔁 Reloaded module: ${fileName}`);
+});
+
+
 // ========== Login ==========
 client.login(process.env.BOT_TOKEN);

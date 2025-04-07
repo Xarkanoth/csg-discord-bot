@@ -1,7 +1,8 @@
 // events/text-event-form.js
 const fs = require('fs');
 const path = require('path');
-const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const { ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const formatEventEmbed = require('../events/utils/format-event-embed');
 const { DateTime } = require('luxon');
 
 const dataFile = path.join(__dirname, '../data/events.json');
@@ -89,19 +90,7 @@ async function startEventDMFlow(user, originChannelId) {
     channelId: originChannelId
   };
 
-  const regionColor = answers.region.toLowerCase() === 'na' ? 0x660000 : 0x003dff;
-
-  const embed = new EmbedBuilder()
-    .setTitle(`📅 ${newEvent.title}`)
-    .addFields(
-      { name: '✅ Accepted (0)', value: '-', inline: true },
-      { name: '❌ Absent (0)', value: '-', inline: true },
-      { name: '🤔 Tentative (0)', value: '-', inline: true }
-    )
-    .setColor(regionColor)
-    .setImage(answers.banner)
-    .setFooter({ text: `Created by ${user.tag}` })
-    .setTimestamp();
+  const embed = formatEventEmbed(newEvent);
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`rsvp_yes_${eventId}`).setLabel('✅ Yes').setStyle(ButtonStyle.Success),

@@ -22,5 +22,25 @@
     },
     "messageId": "1358756038102220973",
     "channelId": "980145545291133068"
+  },
+  {
+    "id": "1744039052302-399",
+    "title": "CSG Monday EU Naval",
+    "datetime": "Monday 20:00 CET",
+    "region": "EU",
+    "postAdvance": {
+      "hours": 4
+    },
+    "repeatEvery": null,
+    "banner": "https://cdn.discordapp.com/attachments/1358099614993088583/1358823013369516325/black_border.png?ex=67f53e0c&is=67f3ec8c&hm=0f94a2c805e02afcf8f34561e21f55cb3eae81bd945e4ba1f97cba601ac4d75a&",
+    "dateTime": "2025-04-07T20:00:00.000+02:00",
+    "createdBy": "xarkanoth",
+    "rsvps": {
+      "yes": [],
+      "no": [],
+      "maybe": []
+    },
+    "messageId": "1358823015059820654",
+    "channelId": "980145545291133068"
   }
 ]
