@@ -138,7 +138,8 @@ async function startEventDMFlow(user, originalChannelId) {
   };
 
   const formatRSVPList = (ids) =>
-    ids.length > 0 ? ids.map(id => `<@${id}>`).join('') : '-';
+    ids.length > 0 ? ids.map(id => `<@${id}>`).join('\n') : '-';  
+  
 
   const regionColor = answers.region.toLowerCase() === 'na' ? 0x660000 : 0x003dff;
 
